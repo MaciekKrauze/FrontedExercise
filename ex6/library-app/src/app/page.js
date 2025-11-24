@@ -6,6 +6,7 @@ import BookList from '../components/BookList';
 import UserForm from '../components/UserForm';
 import {UserList} from '@/components/UserList';
 import LoanManager from '../components/LoanManager';
+import ToastContainer from "@/components/ToastContainer";
 
 export default function Home() {
   // Stan książek
@@ -20,6 +21,22 @@ export default function Home() {
   const [loans, setLoans] = useState([]);
   // Struktura: {id, bookId, userId, bookTitle, userName, loanDate}
 
+  const [toasts, setToasts] = useState([]);
+  // Struktura: { id, message, type, duration }
+
+  // Funkcja do dodawania toastów
+  const showToast = (message, type = 'success', duration = 3000) => {
+    setToasts(prev => [
+      ...prev,
+      { id: Date.now(), message, type, duration }
+    ]);
+  };
+
+// Funkcja do usuwania toastów
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   // Funkcje zarządzania książkami
   const handleAddBook = (bookData) => {
     const newBook = {
@@ -28,12 +45,13 @@ export default function Home() {
       available: bookData.total,
     };
     setBooks([...books, newBook]);
+    showToast("Book added successfully!", "success");
   };
 
   const handleDeleteBook = (bookId) => {
     const isLoaned = loans.some(loan => loan.bookId === bookId);
     if (isLoaned) {
-      alert('You cannot delete a book that is on loan!');
+      showToast('You cannot delete a book that is on loan!', "error");
       return;
     }
     setBooks(books.filter(book => book.id !== bookId));
@@ -42,7 +60,7 @@ export default function Home() {
   const handleAddUser = (userData) => {
     const emailExists = users.some(user => user.email === userData.email);
     if (emailExists) {
-      alert('A user with this email address already exists!');
+      showToast('A user with this email address already exists!', "error");
       return false;
     }
 
@@ -57,10 +75,11 @@ export default function Home() {
   const handleDeleteUser = (userId) => {
     const hasLoans = loans.some(loan => loan.userId === userId);
     if (hasLoans) {
-      alert('Cannot delete user with active rentals!');
+      showToast('Cannot delete user with active rentals!', "error");
       return;
     }
     setUsers(users.filter(user => user.id !== userId));
+    showToast("Book deleted!", "success");
   };
 
   const handleBorrowBook = (bookId, userId) => {
@@ -68,12 +87,12 @@ export default function Home() {
     const user = users.find(u => u.id === userId);
 
     if (!book || !user) {
-      alert('Incorrect data!');
+      showToast("Incorrect data!", "error");
       return;
     }
 
     if (book.available <= 0) {
-      alert('No copies of this book available!');
+      showToast("No copies available!", "error");
       return;
     }
 
@@ -93,6 +112,7 @@ export default function Home() {
     ));
 
     setLoans([...loans, newLoan]);
+    showToast("Book borrowed!", "success");
   };
 
   const handleReturnBook = (loanId) => {
@@ -103,8 +123,8 @@ export default function Home() {
             ? { ...b, available: b.available + 1 }
             : b
     ));
-
     setLoans(loans.filter(l => l.id !== loanId));
+    showToast("Book returned!", "success");
   };
 
   return (
@@ -112,7 +132,6 @@ export default function Home() {
         <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">Library Management System</h1>
 
         <Statistics books={books} users={users} loans={loans}/>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -143,6 +162,7 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-4 text-gray-800">Borrow Management</h2>
           <LoanManager books={books} users={users} loans={loans} onBorrowBook={handleBorrowBook} onReturnBook={handleReturnBook}/>
         </div>
+        <ToastContainer toasts={toasts} removeToast={removeToast} />
       </main>
   );
 }
